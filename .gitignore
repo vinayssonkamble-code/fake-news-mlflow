@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+mlflow.db
+*.db-wal
+*.db-shm
+mlartifacts/
+mlruns/
+data/raw/
+data/*.csv
+data/held_back/
+outputs/
+*.png
+comparison.csv
+test_predictions.csv

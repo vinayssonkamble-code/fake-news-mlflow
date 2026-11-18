@@ -1,0 +1,14 @@
+# Install the CPU build of PyTorch first (Windows, no GPU):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Then:  pip install -r requirements.txt
+#
+# transformers range = the range MLflow's transformers flavour documents as compatible
+# (4.46.2 <= transformers <= 5.20.2, checked against the MLflow 3.18 API reference).
+# After your first successful run, record the exact versions you used:
+#   pip freeze > requirements-lock.txt
+mlflow>=3.0,<4
+transformers>=4.46.2,<=5.20.2
+pandas
+numpy
+scikit-learn
+matplotlib

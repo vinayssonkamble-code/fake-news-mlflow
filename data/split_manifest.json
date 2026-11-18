@@ -1,0 +1,55 @@
+{
+  "dataset": "WELFake",
+  "licence": "CC BY 4.0",
+  "source": "https://zenodo.org/record/4561253",
+  "raw_md5": "73c9675a4b3d09f86a6933d0b8d7d908",
+  "raw_md5_expected": "73c9675a4b3d09f86a6933d0b8d7d908",
+  "label_convention": {
+    "published": "0 = fake, 1 = real",
+    "internal": "1 = FAKE (positive class), 0 = REAL",
+    "flipped_by_user": false
+  },
+  "seed": 42,
+  "split_sizes": {
+    "test": 1000,
+    "val": 600,
+    "new": 10,
+    "train": 3000
+  },
+  "min_words": 30,
+  "fingerprint_chars": 300,
+  "cleaning": {
+    "n_raw": 72134,
+    "n_bad_label": 0,
+    "n_too_short_or_empty": 2590,
+    "n_label_conflict_rows": 0,
+    "n_duplicate_rows_removed": 8397,
+    "n_clean": 61147,
+    "n_clean_fake": 34426,
+    "n_clean_real": 26721
+  },
+  "class_counts": {
+    "test": {
+      "REAL": 437,
+      "FAKE": 563
+    },
+    "val": {
+      "REAL": 262,
+      "FAKE": 338
+    },
+    "new": {
+      "REAL": 4,
+      "FAKE": 6
+    },
+    "train": {
+      "REAL": 1311,
+      "FAKE": 1689
+    }
+  },
+  "file_sha256": {
+    "train.csv": "b5b1cc13c064e211e376396e0c1f713f24695bc7d9146ee0f7497881908d2e3d",
+    "val.csv": "ed4708b2dabcfefa8040cb7bd5dd97fc0212549d9420954489cc1158088d28da",
+    "test.csv": "b565e349c9cfd26c9555a9054da9878aac8a5691b90351ce0e61aaf0552aeb2c",
+    "new_data.csv": "92cee800a6087c611a08238e07ad9c5f02a287ecf960f55071679933a8a0fd50"
+  }
+}
