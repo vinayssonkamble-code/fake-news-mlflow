@@ -1,76 +1,186 @@
-# Fake News Detection System using Hugging Face and MLflow
+# Fake News Detection: Champion–Challenger Model Comparison
 
-Champion–Challenger comparison of two fine-tuned Hugging Face transformers on WELFake,
-tracked and registered with MLflow.  Student: Vinaykumar (1MS25CI146).
+A binary fake-news classification project using Hugging Face Transformers and MLflow. Two models are fine-tuned on the same WELFake dataset, evaluated on the same test set, compared using predefined metrics, and registered in MLflow.
 
-## What has and has not been verified
+## 1. Project Objective
 
-| Item | Status |
+Compare two transformer models:
+
+- Model A: DistilBERT (`distilbert-base-uncased`) — initial Champion.
+- Model B: DistilRoBERTa (`distilroberta-base`) — Challenger.
+
+The objective is to select the better model using a predefined decision rule and make predictions using the registered Champion.
+
+## 2. Dataset
+
+- Dataset: WELFake
+- Source: https://zenodo.org/records/4561253
+- License: CC BY 4.0
+- Task: Binary classification.
+- Label mapping: `0 = REAL`, `1 = FAKE`.
+
+The dataset was cleaned, deduplicated and split before training.
+
+| Split | Samples |
+|---|---:|
+| Training | 3,000 |
+| Validation | 600 |
+| Testing | 1,000 |
+| Unseen prediction data | 10 |
+
+The unseen articles are excluded from training, validation and testing. Their labels are held separately and are not used by the prediction script.
+
+## 3. Model Configuration
+
+Both models use the same training data, evaluation data and training configuration.
+
+| Parameter | Value |
 |---|---|
-| Cleaning, de-duplication, splitting, metrics, decision rule, output parsing (`tests/`) | 18 unit tests pass (synthetic data) |
-| All scripts compile | yes |
-| Fine-tuning, MLflow logging, registry aliases, prediction through `@champion` | **written but not executed** – torch, transformers and mlflow could not be installed where this code was written. Run the smoke test first. |
-| Any metric, latency, run ID, version or prediction | **none exist yet** – they are produced only when you run the pipeline |
+| Maximum sequence length | 128 |
+| Batch size | 8 |
+| Epochs | 1 |
+| Learning rate | 0.00002 |
+| Weight decay | 0.01 |
+| Random seed | 42 |
+| Device | CPU |
+| Evaluation batch size | 32 |
 
-## Design
+## 4. Evaluation Results
 
-* Task: binary classification, `FAKE` = 1 (positive class), `REAL` = 0.
-* Data: WELFake (Zenodo 4561253, CC BY 4.0).  Published labels: 0 = fake, 1 = real.
-* Models (same hyper-parameters, seed, data, latency protocol):
-  A `distilbert-base-uncased` (initial Champion) and B `distilroberta-base` (Challenger).
-* Leakage control: rows are cleaned and near-duplicates (first 300 normalised characters)
-  are removed – label-conflicting groups entirely – **before** the stratified split;
-  splits are checked for id and text overlap.  The validation split picks the best epoch; the test
-  split is used once for the final comparison.
-* Rule (in `config.py`, commit before the final run): primary metric macro-F1, margin 0.01,
-  tie-breaker lower average latency, incumbent A on an exact tie.
-* `new_data.csv` holds 10 articles drawn from the same cleaned pool but excluded from all splits;
-  their labels are kept in `data/held_back/` and are not used by the prediction script.
+Both models completed full training and evaluation on the 1,000-sample test set.
 
-## Run (Windows PowerShell, CPU only)
+| Metric | Model A: DistilBERT | Model B: DistilRoBERTa |
+|---|---:|---:|
+| Accuracy | 0.9630 | 0.9870 |
+| Precision | 0.9799 | 0.9808 |
+| Recall | 0.9538 | 0.9964 |
+| F1-score | 0.9667 | 0.9885 |
+| Macro-F1 | 0.9625 | 0.9868 |
+| Average latency (ms) | 103.8382 | 80.4251 |
+| P95 latency (ms) | 174.4487 | 92.8839 |
 
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
+## 5. Champion Selection Rule
 
-# download WELFake_Dataset.csv from https://zenodo.org/record/4561253 into data\raw\
-python prepare_data.py --inspect        # read the samples; confirm which label is FAKE
-python prepare_data.py                  # add --flip-labels only if --inspect shows inverted labels
+The selection rule was defined before the final experiment.
 
-# terminal 2 - leave running
-python -m mlflow server --host 127.0.0.1 --port 5000 --backend-store-uri sqlite:///mlflow.db
+1. Primary metric: Macro-F1.
+2. Challenger must improve Macro-F1 by at least 0.01 to replace the incumbent.
+3. If the improvement is below the required margin, average inference latency is used as the tie-breaker.
+4. If both metrics are tied, the incumbent remains Champion.
 
-# 0. optional but recommended: tiny end-to-end check in a separate experiment/registry
-python train_evaluate.py --model A --smoke
-python train_evaluate.py --model B --smoke
-python compare_register.py --smoke
-python predict_from_mlflow.py --smoke
+Calculation:
 
-# 1. commit config.py (the rule), then the real run
-git add -A; git commit -m "Fix Champion rule before final run"
-python train_evaluate.py --model A
-python train_evaluate.py --model B
-python compare_register.py
-python predict_from_mlflow.py
-python predict_from_mlflow.py --with-labels   # optional sanity check against held-back labels
+`Model B Macro-F1 - Model A Macro-F1 = 0.9868 - 0.9625 = 0.0242`
+
+Since the improvement of 0.0242 is greater than the required margin of 0.01, Model B is selected.
+
+**Final decision: Model B (DistilRoBERTa) is the Champion.**
+
+## 6. MLflow Model Registry
+
+Registered model name: `fake-news-classifier`
+
+| Model role | Model | Registry version | Alias |
+|---|---|---:|---|
+| Champion | DistilRoBERTa | 2 | `champion` |
+| Challenger | DistilBERT | 1 | `challenger` |
+
+Champion model URI:
+
+`models:/fake-news-classifier@champion`
+
+MLflow tracks the experiment parameters, evaluation metrics, model artifacts, predictions and comparison results.
+
+## 7. Unseen Data Prediction
+
+The prediction script loads the registered Champion using its MLflow alias.
+
+Command:
+
+`python predict_from_mlflow.py`
+
+The script successfully loaded version 2 (`distilroberta-base`) and generated predictions for 10 unseen articles.
+
+Output file:
+
+`outputs/new_data_predictions.csv`
+
+Each prediction includes the article ID, predicted label, confidence and Champion version.
+
+## 8. Project Structure
+
+```text
+fake-news-mlflow/
+├── data/
+│   ├── raw/
+│   ├── held_back/
+│   ├── train.csv
+│   ├── val.csv
+│   ├── test.csv
+│   └── new_data.csv
+├── outputs/
+│   ├── decision.json
+│   ├── run_A.json
+│   ├── run_B.json
+│   └── new_data_predictions.csv
+├── tests/
+├── config.py
+├── data_utils.py
+├── decision.py
+├── metrics_utils.py
+├── mlflow_utils.py
+├── prepare_data.py
+├── train_evaluate.py
+├── compare_register.py
+├── predict_from_mlflow.py
+├── requirements.txt
+└── README.md
 ```
 
-MLflow UI: http://127.0.0.1:5000.  Outputs: `outputs/new_data_predictions.csv`,
-`outputs/decision.json`, `outputs/run_A.json`, `outputs/run_B.json`.
+## 9. How to Run
 
-## CPU / memory notes (16 GB RAM)
+Use Python and install the dependencies listed in `requirements.txt`.
 
-Both models are 6-layer encoders (about 66–67 M and 82 M parameters).  Defaults – 3,000 training
-articles, 2 epochs, batch size 16, 256 tokens – are chosen to fit a laptop CPU; articles longer than
-256 tokens are truncated.  If memory is tight, lower `BATCH_SIZE` in `config.py` (identically for
-both models).  Training time depends on your CPU and is not estimated here.
+Activate the virtual environment:
 
-## Known limitations
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
-* Label direction in WELFake must be confirmed with `--inspect`.
-* WELFake merges several sources; models can learn source style rather than veracity, so test
-  scores will not transfer to other publishers or time periods.
-* Latency is batch-size-1 on one machine, includes tokenisation, and is noisy under system load.
-* A 1,000-article test set cannot separate models that differ by less than about 1 point of F1.
+Start the MLflow server in a separate terminal:
+
+```powershell
+.\.venv\Scripts\python.exe -m mlflow server --host 127.0.0.1 --port 5000 --workers 1
+```
+
+Run the full experiment in the project directory:
+
+```powershell
+.\.venv\Scripts\python.exe .\train_evaluate.py --model A --threads 2
+.\.venv\Scripts\python.exe .\train_evaluate.py --model B --threads 2
+.\.venv\Scripts\python.exe .\compare_register.py
+.\.venv\Scripts\python.exe .\predict_from_mlflow.py
+```
+
+Open the MLflow interface:
+
+http://127.0.0.1:5000
+
+## 10. Limitations
+
+- The experiment uses a 1,000-sample test set from WELFake.
+- Dataset-specific patterns may affect model performance; high test scores do not guarantee performance on every news source.
+- Inference latency depends on the machine and system load.
+- The experiment was conducted on CPU, with one training epoch.
+- The 10 unseen predictions demonstrate inference through the registered Champion; they are not a replacement for an independent external evaluation.
+
+## 11. Technologies Used
+
+- Python
+- Hugging Face Transformers
+- PyTorch
+- MLflow
+- Pandas
+- NumPy
+- Matplotlib
+- Git and GitHub
