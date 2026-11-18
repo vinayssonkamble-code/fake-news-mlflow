@@ -36,9 +36,9 @@ MIN_WORDS = 30          # drop articles with fewer body words
 FINGERPRINT_CHARS = 300  # near-duplicate key: first N normalised characters
 
 # ------------------------------------------- training (identical for A and B) ---
-MAX_LEN = 256
-BATCH_SIZE = 16
-EPOCHS = 2
+MAX_LEN = 128
+BATCH_SIZE = 8
+EPOCHS = 1
 LEARNING_RATE = 2e-5
 WEIGHT_DECAY = 0.01
 WARMUP_RATIO = 0.1
